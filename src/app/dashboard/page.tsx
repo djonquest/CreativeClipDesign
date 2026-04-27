@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AppNav from "@/components/AppNav";
+import AppNav from "@/components/appnav";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 
 export default function DashboardPage() {
