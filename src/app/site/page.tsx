@@ -1,102 +1,191 @@
-import Link from "next/link";
+"use client";
+
+import { useState } from "react";
+import { supabaseClient } from "@/lib/supabaseClient";
 
 export default function SitePage() {
+  const [modal, setModal] = useState<"login" | "cadastro" | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function handleLogin() {
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    window.location.href = "/dashboard";
+  }
+
+  async function handleCadastro() {
+    const { error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert("Conta criada! Verifique seu email se a confirmação estiver ativa.");
+    setModal("login");
+  }
+
   return (
-    <main className="min-h-screen bg-white">
-      <section className="px-6 py-20 text-center bg-gradient-to-br from-purple-50 to-pink-50">
-        <h1 className="text-4xl md:text-6xl font-bold mb-6">
-          CreativeClip
-        </h1>
+    <main className="min-h-screen bg-slate-950 text-white overflow-hidden">
+      <header className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
+        <h1 className="text-2xl font-black tracking-tight">CreativeClip</h1>
 
-        <p className="text-xl md:text-2xl max-w-3xl mx-auto mb-8 text-gray-700">
-          O SaaS premium para estilistas, costureiras e ateliês criarem peças com IA,
-          controlarem clientes, medidas, pedidos e entregas em um só lugar.
-        </p>
-
-        <div className="flex gap-4 justify-center">
-          <Link
-            href="/cadastro"
-            className="bg-gradient-to-r from-purple-600 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold"
-          >
-            Começar agora
-          </Link>
-
-          <Link
-            href="/login"
-            className="border px-6 py-3 rounded-lg font-semibold"
+        <div className="flex gap-3">
+          <button
+            onClick={() => setModal("login")}
+            className="px-5 py-2 rounded-full border border-white/20 hover:bg-white/10"
           >
             Entrar
-          </Link>
+          </button>
+
+          <button
+            onClick={() => setModal("cadastro")}
+            className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 font-semibold"
+          >
+            Começar agora
+          </button>
+        </div>
+      </header>
+
+      <section className="px-8 pt-20 pb-24 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <div className="inline-block mb-6 px-4 py-2 rounded-full bg-white/10 border border-white/10 text-sm">
+            SaaS premium para moda sob medida
+          </div>
+
+          <h2 className="text-5xl lg:text-7xl font-black leading-tight">
+            Crie peças com IA e organize seu ateliê em um só lugar.
+          </h2>
+
+          <p className="mt-6 text-xl text-slate-300 max-w-2xl">
+            Clientes, medidas, pedidos, prazos, histórico visual e geração de designs com IA para costureiras, estilistas e ateliês.
+          </p>
+
+          <div className="mt-8 flex gap-4">
+            <button
+              onClick={() => setModal("cadastro")}
+              className="px-7 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 font-bold shadow-lg shadow-pink-500/20"
+            >
+              Criar minha conta
+            </button>
+
+            <button
+              onClick={() => setModal("login")}
+              className="px-7 py-4 rounded-xl border border-white/20 hover:bg-white/10"
+            >
+              Já tenho conta
+            </button>
+          </div>
+        </div>
+
+        <div className="relative">
+          <div className="absolute -inset-6 bg-gradient-to-r from-purple-500 to-pink-500 blur-3xl opacity-30 rounded-full" />
+
+          <div className="relative bg-white/10 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur">
+            <div className="bg-slate-900 rounded-2xl p-5 mb-4">
+              <p className="text-sm text-slate-400">Pedido em andamento</p>
+              <h3 className="text-2xl font-bold mt-2">Vestido festa vermelho</h3>
+              <p className="text-slate-300 mt-2">Entrega: 30/04 • Cliente: Maria</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-900 rounded-2xl p-5">
+                <p className="text-slate-400">Clientes</p>
+                <p className="text-3xl font-black">128</p>
+              </div>
+
+              <div className="bg-slate-900 rounded-2xl p-5">
+                <p className="text-slate-400">Designs IA</p>
+                <p className="text-3xl font-black">842</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="px-6 py-16 max-w-6xl mx-auto">
-        <h2 className="text-3xl font-bold text-center mb-10">
-          Tudo que seu ateliê precisa
-        </h2>
+      <section className="px-8 py-20 bg-white text-slate-950">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-4xl font-black text-center mb-12">
+            Tudo que seu ateliê precisa
+          </h2>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-xl font-bold mb-3">Clientes organizados</h3>
-            <p className="text-gray-600">
-              Cadastre clientes, acompanhe histórico, pedidos, medidas e preferências.
-            </p>
-          </div>
-
-          <div className="border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-xl font-bold mb-3">Medidas sempre salvas</h3>
-            <p className="text-gray-600">
-              Guarde medidas por cliente e use automaticamente na geração com IA.
-            </p>
-          </div>
-
-          <div className="border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-xl font-bold mb-3">Designs com IA</h3>
-            <p className="text-gray-600">
-              Gere ideias de peças, salve versões e reutilize designs no futuro.
-            </p>
-          </div>
-
-          <div className="border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-xl font-bold mb-3">Controle de pedidos</h3>
-            <p className="text-gray-600">
-              Substitua o caderninho com prazo de entrega, status e valor do pedido.
-            </p>
-          </div>
-
-          <div className="border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-xl font-bold mb-3">Histórico visual</h3>
-            <p className="text-gray-600">
-              Tenha uma galeria com todos os designs criados para cada cliente.
-            </p>
-          </div>
-
-          <div className="border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-xl font-bold mb-3">Créditos flexíveis</h3>
-            <p className="text-gray-600">
-              Use créditos por geração e compre pacotes avulsos quando precisar.
-            </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              ["Clientes organizados", "Cadastre clientes, medidas e preferências."],
+              ["Pedidos e prazos", "Controle entregas, valores e status."],
+              ["Designs com IA", "Gere peças e salve histórico visual."],
+              ["Medidas salvas", "Use medidas reais na criação das roupas."],
+              ["Créditos flexíveis", "Assinaturas e pacotes avulsos."],
+              ["Perfil profissional", "Faturamento e gestão em um só painel."],
+            ].map(([title, desc]) => (
+              <div key={title} className="border rounded-3xl p-7 shadow-sm hover:shadow-xl transition">
+                <h3 className="text-xl font-bold mb-3">{title}</h3>
+                <p className="text-slate-600">{desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="px-6 py-16 bg-black text-white text-center">
-        <h2 className="text-3xl font-bold mb-4">
-          Menos papel. Mais criação. Mais vendas.
-        </h2>
+      {modal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-6 z-50">
+          <div className="bg-white text-slate-950 w-full max-w-md rounded-3xl p-7 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-black">
+                {modal === "login" ? "Entrar" : "Criar conta"}
+              </h2>
 
-        <p className="max-w-2xl mx-auto mb-8 text-gray-300">
-          O CreativeClip ajuda costureiras e estilistas a profissionalizarem o atendimento,
-          impressionarem clientes e organizarem o processo de produção.
-        </p>
+              <button onClick={() => setModal(null)} className="text-2xl">
+                ×
+              </button>
+            </div>
 
-        <Link
-          href="/cadastro"
-          className="bg-white text-black px-6 py-3 rounded-lg font-semibold"
-        >
-          Criar minha conta
-        </Link>
-      </section>
+            <input
+              className="border p-3 w-full rounded-xl mb-3"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <input
+              className="border p-3 w-full rounded-xl mb-5"
+              placeholder="Senha"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            <button
+              onClick={modal === "login" ? handleLogin : handleCadastro}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold"
+            >
+              {modal === "login" ? "Entrar" : "Criar conta"}
+            </button>
+
+            <p className="text-center text-sm mt-4">
+              {modal === "login" ? "Não tem conta?" : "Já tem conta?"}{" "}
+              <button
+                onClick={() => setModal(modal === "login" ? "cadastro" : "login")}
+                className="text-purple-600 font-bold"
+              >
+                {modal === "login" ? "Criar conta" : "Entrar"}
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
