@@ -3,6 +3,49 @@
 import { useState } from "react";
 import { supabaseClient } from "@/lib/supabaseClient";
 
+const plans = [
+  {
+    name: "Starter",
+    price: "R$ 79/mês",
+    tag: "Comece agora",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_MONTHLY,
+    benefits: [
+      "30 créditos por mês",
+      "Cadastro de clientes",
+      "Controle de medidas",
+      "Histórico de designs",
+      "Controle simples de pedidos",
+    ],
+  },
+  {
+    name: "Pro",
+    price: "R$ 197/mês",
+    tag: "Mais popular",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY,
+    featured: true,
+    benefits: [
+      "100 créditos por mês",
+      "Geração de designs com IA",
+      "Histórico por cliente",
+      "Pedidos com prazo de entrega",
+      "Portal de faturamento",
+    ],
+  },
+  {
+    name: "Elite",
+    price: "R$ 397/mês",
+    tag: "Ateliês premium",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ELITE_MONTHLY,
+    benefits: [
+      "300 créditos por mês",
+      "Uso avançado para ateliês",
+      "Prioridade em recursos novos",
+      "Mais gerações mensais",
+      "Ideal para alto volume",
+    ],
+  },
+];
+
 export default function SitePage() {
   const [modal, setModal] = useState<"login" | "cadastro" | null>(null);
   const [email, setEmail] = useState("");
@@ -37,6 +80,34 @@ export default function SitePage() {
     setModal("login");
   }
 
+  async function handleCheckout(priceId?: string) {
+    const {
+      data: { user },
+    } = await supabaseClient.auth.getUser();
+
+    if (!user) {
+      alert("Crie sua conta ou entre antes de assinar.");
+      setModal("cadastro");
+      return;
+    }
+
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      body: JSON.stringify({
+        priceId,
+        userId: user.id,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert(data.error || "Não foi possível abrir o checkout.");
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-950 text-white overflow-hidden">
       <header className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
@@ -59,7 +130,7 @@ export default function SitePage() {
         </div>
       </header>
 
-      <section className="px-8 pt-20 pb-24 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+      <section className="px-8 pt-20 pb-20 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
         <div>
           <div className="inline-block mb-6 px-4 py-2 rounded-full bg-white/10 border border-white/10 text-sm">
             SaaS premium para moda sob medida
@@ -117,22 +188,58 @@ export default function SitePage() {
 
       <section className="px-8 py-20 bg-white text-slate-950">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-black text-center mb-12">
-            Tudo que seu ateliê precisa
+          <h2 className="text-4xl font-black text-center mb-4">
+            Planos para cada fase do seu ateliê
           </h2>
 
+          <p className="text-center text-slate-600 mb-12">
+            Assine agora ou comece grátis e faça upgrade quando precisar.
+          </p>
+
           <div className="grid md:grid-cols-3 gap-6">
-            {[
-              ["Clientes organizados", "Cadastre clientes, medidas e preferências."],
-              ["Pedidos e prazos", "Controle entregas, valores e status."],
-              ["Designs com IA", "Gere peças e salve histórico visual."],
-              ["Medidas salvas", "Use medidas reais na criação das roupas."],
-              ["Créditos flexíveis", "Assinaturas e pacotes avulsos."],
-              ["Perfil profissional", "Faturamento e gestão em um só painel."],
-            ].map(([title, desc]) => (
-              <div key={title} className="border rounded-3xl p-7 shadow-sm hover:shadow-xl transition">
-                <h3 className="text-xl font-bold mb-3">{title}</h3>
-                <p className="text-slate-600">{desc}</p>
+            {plans.map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-3xl p-7 border shadow-xl ${
+                  plan.featured
+                    ? "bg-gradient-to-br from-purple-950 to-pink-900 text-white scale-105 border-purple-400"
+                    : "bg-white text-slate-950 border-slate-200"
+                }`}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-2xl font-black">{plan.name}</h3>
+                  <span
+                    className={`text-xs px-3 py-1 rounded-full ${
+                      plan.featured
+                        ? "bg-white/20"
+                        : "bg-purple-100 text-purple-700"
+                    }`}
+                  >
+                    {plan.tag}
+                  </span>
+                </div>
+
+                <p className="text-4xl font-black mb-6">{plan.price}</p>
+
+                <ul className="space-y-3 mb-8">
+                  {plan.benefits.map((benefit) => (
+                    <li key={benefit} className="flex gap-2">
+                      <span>✓</span>
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => handleCheckout(plan.priceId)}
+                  className={`w-full py-3 rounded-xl font-bold ${
+                    plan.featured
+                      ? "bg-white text-purple-900"
+                      : "bg-gradient-to-r from-purple-600 to-pink-500 text-white"
+                  }`}
+                >
+                  Assinar {plan.name}
+                </button>
               </div>
             ))}
           </div>
