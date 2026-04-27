@@ -1,6 +1,8 @@
+import "./globals.css";
+
 export const metadata = {
   title: "CreativeClip",
-  description: "SaaS para estilistas com IA",
+  description: "SaaS premium para estilistas e costureiras com IA",
 };
 
 export default function RootLayout({
