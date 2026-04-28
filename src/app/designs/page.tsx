@@ -1,40 +1,84 @@
 "use client";
 
+import type { ChangeEvent } from "react";
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
+import { getCurrentUser } from "@/lib/getCurrentUser";
+
+type Client = {
+  id: string;
+  name?: string;
+};
+
+type Design = {
+  id: string;
+  image_url?: string | null;
+  prompt?: string | null;
+};
+
+function toArray<T>(data: unknown): T[] {
+  return Array.isArray(data) ? data.filter(Boolean) : [];
+}
 
 export default function DesignsPage() {
-  const [designs, setDesigns] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [userId, setUserId] = useState("");
+  const [designs, setDesigns] = useState<Design[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [clientId, setClientId] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const userId = "9c77970e-297f-4f12-8dc0-3dfde1c45d5b";
+  async function fetchDesigns(id: string, selectedClient?: string) {
+    try {
+      const url = selectedClient
+        ? `/api/designs?userId=${id}&clientId=${selectedClient}`
+        : `/api/designs?userId=${id}`;
 
-  async function fetchDesigns(selectedClient?: string) {
-    const url = selectedClient
-      ? `/api/designs?userId=${userId}&clientId=${selectedClient}`
-      : `/api/designs?userId=${userId}`;
-
-    const res = await fetch(url);
-    const data = await res.json();
-    setDesigns(data);
+      const res = await fetch(url);
+      const data = await res.json();
+      setDesigns(toArray<Design>(data));
+    } catch (err) {
+      console.error("Erro ao carregar designs:", err);
+      setDesigns([]);
+    }
   }
 
   useEffect(() => {
-    fetch(`/api/clientes?userId=${userId}`)
-      .then((res) => res.json())
-      .then(setClients);
+    async function init() {
+      try {
+        const user = await getCurrentUser();
 
-    fetchDesigns();
+        if (!user) {
+          window.location.href = "/site";
+          return;
+        }
+
+        setUserId(user.id);
+
+        const clientsRes = await fetch(`/api/clientes?userId=${user.id}`);
+        const clientsData = await clientsRes.json();
+        setClients(toArray<Client>(clientsData));
+
+        await fetchDesigns(user.id);
+      } catch (err) {
+        console.error("Erro ao iniciar designs:", err);
+        setClients([]);
+        setDesigns([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    init();
   }, []);
 
-  function handleFilter(e: any) {
+  function handleFilter(e: ChangeEvent<HTMLSelectElement>) {
     const id = e.target.value;
     setClientId(id);
-    fetchDesigns(id);
+    if (userId) fetchDesigns(userId, id);
   }
 
-  function reusePrompt(prompt: string) {
+  function reusePrompt(prompt?: string | null) {
+    if (!prompt) return;
     navigator.clipboard.writeText(prompt);
     alert("Prompt copiado!");
   }
@@ -48,35 +92,45 @@ export default function DesignsPage() {
           onChange={handleFilter}
         >
           <option value="">Todos clientes</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.name || "Cliente sem nome"}
             </option>
           ))}
         </select>
       </div>
 
-      {designs.length === 0 ? (
+      {loading ? (
+        <div className="cc-card rounded-2xl p-6 text-slate-400">
+          Carregando designs...
+        </div>
+      ) : designs.length === 0 ? (
         <div className="cc-card rounded-2xl p-6 text-slate-400">
           Nenhum design encontrado.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {designs.map((d) => (
-            <article key={d.id} className="cc-card overflow-hidden rounded-2xl">
-              {d.image_url && (
+          {designs.map((design) => (
+            <article
+              key={design.id}
+              className="cc-card overflow-hidden rounded-2xl"
+            >
+              {design.image_url && (
                 <img
-                  src={d.image_url}
+                  src={design.image_url}
                   alt="Design"
                   className="h-72 w-full object-cover"
                 />
               )}
 
               <div className="p-4">
-                <p className="line-clamp-3 text-sm text-slate-300">{d.prompt}</p>
+                <p className="line-clamp-3 text-sm text-slate-300">
+                  {design.prompt || "Sem prompt salvo."}
+                </p>
 
                 <button
-                  onClick={() => reusePrompt(d.prompt)}
+                  onClick={() => reusePrompt(design.prompt)}
+                  disabled={!design.prompt}
                   className="cc-button-secondary mt-4 w-full px-4 py-3 text-sm"
                 >
                   Reutilizar prompt

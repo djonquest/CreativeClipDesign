@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabaseClient } from "@/lib/supabaseClient";
@@ -15,15 +16,15 @@ const navItems = [
 ];
 
 type AppShellProps = {
-  children: React.ReactNode;
-  title: string;
+  children?: ReactNode;
+  title?: string;
   eyebrow?: string;
-  action?: React.ReactNode;
+  action?: ReactNode;
 };
 
 export default function AppShell({
   children,
-  title,
+  title = "CreativeClip",
   eyebrow = "CreativeClip Studio",
   action,
 }: AppShellProps) {

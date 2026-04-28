@@ -4,55 +4,75 @@ import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 
+type Client = {
+  id: string;
+  name?: string;
+};
+
 type Order = {
   id: string;
-  client_id?: string;
-  status: string;
-  delivery_date: string;
-  price: number;
-  notes?: string;
+  client_id?: string | null;
+  status?: string | null;
+  delivery_date?: string | null;
+  price?: number | string | null;
+  notes?: string | null;
 };
+
+function toArray<T>(data: unknown): T[] {
+  return Array.isArray(data) ? data.filter(Boolean) : [];
+}
 
 export default function PedidosPage() {
   const [userId, setUserId] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
 
   const [clientId, setClientId] = useState("");
   const [price, setPrice] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  async function fetchOrders(id: string) {
+    try {
+      const res = await fetch(`/api/orders?userId=${id}`);
+      const data = await res.json();
+      setOrders(toArray<Order>(data));
+    } catch (err) {
+      console.error("Erro ao carregar pedidos:", err);
+      setOrders([]);
+    }
+  }
 
   useEffect(() => {
     async function init() {
-      const user = await getCurrentUser();
+      try {
+        const user = await getCurrentUser();
 
-      if (!user) {
-        window.location.href = "/login";
-        return;
+        if (!user) {
+          window.location.href = "/site";
+          return;
+        }
+
+        setUserId(user.id);
+
+        const clientsRes = await fetch(`/api/clientes?userId=${user.id}`);
+        const clientsData = await clientsRes.json();
+        setClients(toArray<Client>(clientsData));
+
+        await fetchOrders(user.id);
+      } catch (err) {
+        console.error("Erro ao iniciar pedidos:", err);
+        setClients([]);
+        setOrders([]);
+      } finally {
+        setLoading(false);
       }
-
-      setUserId(user.id);
-
-      const clientsRes = await fetch(`/api/clientes?userId=${user.id}`);
-      const clientsData = await clientsRes.json();
-      setClients(clientsData);
-
-      await fetchOrders(user.id);
     }
 
     init();
   }, []);
-
-  async function fetchOrders(id = userId) {
-    if (!id) return;
-
-    const res = await fetch(`/api/orders?userId=${id}`);
-    const data = await res.json();
-
-    setOrders(data || []);
-  }
 
   async function handleCreate() {
     if (!price || !deliveryDate) {
@@ -60,7 +80,9 @@ export default function PedidosPage() {
       return;
     }
 
-    setLoading(true);
+    if (!userId) return;
+
+    setSaving(true);
 
     try {
       const res = await fetch("/api/orders", {
@@ -79,7 +101,7 @@ export default function PedidosPage() {
 
       const data = await res.json();
 
-      if (data.error) {
+      if (data?.error) {
         alert(data.error);
         return;
       }
@@ -89,25 +111,32 @@ export default function PedidosPage() {
       setDeliveryDate("");
       setNotes("");
 
-      await fetchOrders();
+      await fetchOrders(userId);
     } catch (err) {
-      console.error(err);
+      console.error("Erro ao criar pedido:", err);
       alert("Erro ao criar pedido");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
   async function handleStatus(id: string, status: string) {
-    await fetch("/api/orders", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id, status }),
-    });
+    if (!userId) return;
 
-    await fetchOrders();
+    try {
+      await fetch("/api/orders", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, status }),
+      });
+
+      await fetchOrders(userId);
+    } catch (err) {
+      console.error("Erro ao atualizar pedido:", err);
+      alert("Erro ao atualizar pedido");
+    }
   }
 
   function handleCancel() {
@@ -118,12 +147,12 @@ export default function PedidosPage() {
     window.history.back();
   }
 
-  function getClientName(id?: string) {
-    const client = clients.find((c) => c.id === id);
+  function getClientName(id?: string | null) {
+    const client = clients.find((item) => item.id === id);
     return client?.name || "Cliente nao informado";
   }
 
-  function isLate(date: string, status: string) {
+  function isLate(date?: string | null, status?: string | null) {
     if (!date) return false;
     if (status === "done" || status === "delivered") return false;
 
@@ -151,7 +180,7 @@ export default function PedidosPage() {
               <option value="">Selecionar cliente</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.id}>
-                  {client.name}
+                  {client.name || "Cliente sem nome"}
                 </option>
               ))}
             </select>
@@ -186,83 +215,89 @@ export default function PedidosPage() {
               </button>
               <button
                 onClick={handleCreate}
-                disabled={loading}
+                disabled={saving || !userId}
                 className="cc-button-primary w-full px-4 py-3"
               >
-                {loading ? "Criando..." : "Criar pedido"}
+                {saving ? "Criando..." : "Criar pedido"}
               </button>
             </div>
           </div>
         </section>
 
         <section className="space-y-3">
-          {orders.map((order) => {
-            const late = isLate(order.delivery_date, order.status);
-
-            return (
-              <div
-                key={order.id}
-                className={`cc-card rounded-2xl p-5 ${
-                  late ? "border-red-400/40 bg-red-500/10" : ""
-                }`}
-              >
-                <div className="flex flex-col justify-between gap-4 md:flex-row">
-                  <div>
-                    <p className="font-bold text-white">
-                      {getClientName(order.client_id)}
-                    </p>
-                    <p className="mt-2 text-slate-300">
-                      R$ {Number(order.price || 0).toFixed(2)}
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      Entrega: {order.delivery_date || "-"}
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      Status: {order.status}
-                    </p>
-
-                    {order.notes && (
-                      <p className="mt-3 text-sm text-slate-300">{order.notes}</p>
-                    )}
-
-                    {late && (
-                      <p className="mt-3 text-sm font-bold text-red-200">
-                        Pedido atrasado
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 text-sm md:flex-col">
-                    <button
-                      onClick={() => handleStatus(order.id, "in_progress")}
-                      className="cc-button-secondary px-3 py-2"
-                    >
-                      Em andamento
-                    </button>
-
-                    <button
-                      onClick={() => handleStatus(order.id, "done")}
-                      className="cc-button-secondary px-3 py-2"
-                    >
-                      Concluido
-                    </button>
-
-                    <button
-                      onClick={() => handleStatus(order.id, "delivered")}
-                      className="cc-button-secondary px-3 py-2"
-                    >
-                      Entregue
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {orders.length === 0 && (
+          {loading ? (
+            <div className="cc-card rounded-2xl p-6 text-slate-400">
+              Carregando pedidos...
+            </div>
+          ) : orders.length === 0 ? (
             <div className="cc-card rounded-2xl p-6 text-slate-400">
               Nenhum pedido cadastrado ainda.
             </div>
+          ) : (
+            orders.map((order) => {
+              const late = isLate(order.delivery_date, order.status);
+
+              return (
+                <div
+                  key={order.id}
+                  className={`cc-card rounded-2xl p-5 ${
+                    late ? "border-red-400/40 bg-red-500/10" : ""
+                  }`}
+                >
+                  <div className="flex flex-col justify-between gap-4 md:flex-row">
+                    <div>
+                      <p className="font-bold text-white">
+                        {getClientName(order.client_id)}
+                      </p>
+                      <p className="mt-2 text-slate-300">
+                        R$ {Number(order.price || 0).toFixed(2)}
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        Entrega: {order.delivery_date || "-"}
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        Status: {order.status || "-"}
+                      </p>
+
+                      {order.notes && (
+                        <p className="mt-3 text-sm text-slate-300">
+                          {order.notes}
+                        </p>
+                      )}
+
+                      {late && (
+                        <p className="mt-3 text-sm font-bold text-red-200">
+                          Pedido atrasado
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 text-sm md:flex-col">
+                      <button
+                        onClick={() => handleStatus(order.id, "in_progress")}
+                        className="cc-button-secondary px-3 py-2"
+                      >
+                        Em andamento
+                      </button>
+
+                      <button
+                        onClick={() => handleStatus(order.id, "done")}
+                        className="cc-button-secondary px-3 py-2"
+                      >
+                        Concluido
+                      </button>
+
+                      <button
+                        onClick={() => handleStatus(order.id, "delivered")}
+                        className="cc-button-secondary px-3 py-2"
+                      >
+                        Entregue
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </section>
       </div>

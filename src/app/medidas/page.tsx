@@ -4,31 +4,48 @@ import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 
+type Client = {
+  id: string;
+  name?: string;
+};
+
+function toArray<T>(data: unknown): T[] {
+  return Array.isArray(data) ? data.filter(Boolean) : [];
+}
+
 export default function MedidasPage() {
   const [userId, setUserId] = useState("");
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [clientId, setClientId] = useState("");
 
   const [size, setSize] = useState("");
   const [bust, setBust] = useState("");
   const [waist, setWaist] = useState("");
   const [hip, setHip] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function init() {
-      const user = await getCurrentUser();
+      try {
+        const user = await getCurrentUser();
 
-      if (!user) {
-        window.location.href = "/login";
-        return;
+        if (!user) {
+          window.location.href = "/site";
+          return;
+        }
+
+        setUserId(user.id);
+
+        const res = await fetch(`/api/clientes?userId=${user.id}`);
+        const data = await res.json();
+        setClients(toArray<Client>(data));
+      } catch (err) {
+        console.error("Erro ao carregar medidas:", err);
+        setClients([]);
+      } finally {
+        setLoading(false);
       }
-
-      setUserId(user.id);
-
-      const res = await fetch(`/api/clientes?userId=${user.id}`);
-      const data = await res.json();
-      setClients(data);
     }
 
     init();
@@ -40,7 +57,9 @@ export default function MedidasPage() {
       return;
     }
 
-    setLoading(true);
+    if (!userId) return;
+
+    setSaving(true);
 
     try {
       const res = await fetch("/api/measurements", {
@@ -60,7 +79,7 @@ export default function MedidasPage() {
 
       const data = await res.json();
 
-      if (data.error) {
+      if (data?.error) {
         alert(data.error);
         return;
       }
@@ -72,10 +91,10 @@ export default function MedidasPage() {
       setWaist("");
       setHip("");
     } catch (err) {
-      console.error(err);
+      console.error("Erro ao salvar medidas:", err);
       alert("Erro ao salvar medidas");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
@@ -99,10 +118,12 @@ export default function MedidasPage() {
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
           >
-            <option value="">Selecionar cliente</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+            <option value="">
+              {loading ? "Carregando clientes..." : "Selecionar cliente"}
+            </option>
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.name || "Cliente sem nome"}
               </option>
             ))}
           </select>
@@ -149,10 +170,10 @@ export default function MedidasPage() {
           </button>
           <button
             onClick={handleSave}
-            disabled={loading}
+            disabled={saving || !userId}
             className="cc-button-primary w-full px-4 py-3"
           >
-            {loading ? "Salvando..." : "Salvar medidas"}
+            {saving ? "Salvando..." : "Salvar medidas"}
           </button>
         </div>
       </section>

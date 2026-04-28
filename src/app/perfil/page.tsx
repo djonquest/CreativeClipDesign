@@ -5,61 +5,83 @@ import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { supabaseClient } from "@/lib/supabaseClient";
 
+type Profile = {
+  email?: string | null;
+  plan?: string | null;
+  credits?: number | null;
+};
+
 export default function PerfilPage() {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(true);
 
   async function loadProfile() {
-    const user = await getCurrentUser();
+    try {
+      const user = await getCurrentUser();
 
-    if (!user) {
-      window.location.href = "/login";
-      return;
+      if (!user) {
+        window.location.href = "/site";
+        return;
+      }
+
+      setUserId(user.id);
+
+      const res = await fetch(`/api/profile?userId=${user.id}`);
+      const data = await res.json();
+
+      setProfile(data && !Array.isArray(data) ? data : null);
+    } catch (err) {
+      console.error("Erro ao carregar perfil:", err);
+      setProfile(null);
+    } finally {
+      setLoading(false);
     }
-
-    setUserId(user.id);
-
-    const res = await fetch(`/api/profile?userId=${user.id}`);
-    const data = await res.json();
-
-    setProfile(data);
-    setLoading(false);
   }
 
   async function handleLogout() {
     await supabaseClient.auth.signOut();
-    window.location.href = "/login";
+    window.location.href = "/site";
   }
 
   async function handleBillingPortal() {
-    const res = await fetch("/api/stripe/portal", {
-      method: "POST",
-      body: JSON.stringify({ userId }),
-    });
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        body: JSON.stringify({ userId }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert(data.error || "Nao foi possivel abrir o faturamento");
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data?.error || "Nao foi possivel abrir o faturamento");
+      }
+    } catch (err) {
+      console.error("Erro ao abrir faturamento:", err);
+      alert("Nao foi possivel abrir o faturamento");
     }
   }
 
   async function handleUpgrade() {
-    const res = await fetch("/api/stripe/checkout", {
-      method: "POST",
-      body: JSON.stringify({
-        priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY,
-        userId,
-      }),
-    });
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY,
+          userId,
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.url) {
-      window.location.href = data.url;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error("Erro ao iniciar checkout:", err);
+      alert("Nao foi possivel iniciar o checkout");
     }
   }
 
@@ -108,6 +130,7 @@ export default function PerfilPage() {
         <section className="mt-6 space-y-3">
           <button
             onClick={handleUpgrade}
+            disabled={!userId}
             className="cc-button-primary w-full px-4 py-3"
           >
             Fazer upgrade
@@ -115,6 +138,7 @@ export default function PerfilPage() {
 
           <button
             onClick={handleBillingPortal}
+            disabled={!userId}
             className="cc-button-secondary w-full px-4 py-3"
           >
             Gerenciar faturamento

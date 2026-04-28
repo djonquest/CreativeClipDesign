@@ -4,29 +4,46 @@ import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 
+type Client = {
+  id: string;
+  name?: string;
+};
+
+function toArray<T>(data: unknown): T[] {
+  return Array.isArray(data) ? data.filter(Boolean) : [];
+}
+
 export default function GerarPage() {
   const [prompt, setPrompt] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingClients, setLoadingClients] = useState(true);
 
   const [userId, setUserId] = useState("");
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [clientId, setClientId] = useState("");
 
   useEffect(() => {
     async function init() {
-      const user = await getCurrentUser();
+      try {
+        const user = await getCurrentUser();
 
-      if (!user) {
-        window.location.href = "/login";
-        return;
+        if (!user) {
+          window.location.href = "/site";
+          return;
+        }
+
+        setUserId(user.id);
+
+        const res = await fetch(`/api/clientes?userId=${user.id}`);
+        const data = await res.json();
+        setClients(toArray<Client>(data));
+      } catch (err) {
+        console.error("Erro ao carregar gerador:", err);
+        setClients([]);
+      } finally {
+        setLoadingClients(false);
       }
-
-      setUserId(user.id);
-
-      const res = await fetch(`/api/clientes?userId=${user.id}`);
-      const data = await res.json();
-      setClients(data);
     }
 
     init();
@@ -37,6 +54,8 @@ export default function GerarPage() {
       alert("Digite uma descricao");
       return;
     }
+
+    if (!userId) return;
 
     setLoading(true);
 
@@ -55,15 +74,14 @@ export default function GerarPage() {
 
       const data = await res.json();
 
-      if (data.error) {
+      if (data?.error) {
         alert(data.error);
-        setLoading(false);
         return;
       }
 
-      setImage(data.image);
+      setImage(typeof data?.image === "string" ? data.image : null);
     } catch (err) {
-      console.error(err);
+      console.error("Erro ao gerar imagem:", err);
       alert("Erro ao gerar imagem");
     } finally {
       setLoading(false);
@@ -89,10 +107,12 @@ export default function GerarPage() {
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
             >
-              <option value="">Sem cliente (geral)</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
+              <option value="">
+                {loadingClients ? "Carregando clientes..." : "Sem cliente (geral)"}
+              </option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name || "Cliente sem nome"}
                 </option>
               ))}
             </select>
@@ -113,7 +133,7 @@ export default function GerarPage() {
               </button>
               <button
                 onClick={handleGenerate}
-                disabled={loading}
+                disabled={loading || !userId}
                 className="cc-button-primary w-full px-4 py-3"
               >
                 {loading ? "Gerando..." : "Gerar com IA"}
