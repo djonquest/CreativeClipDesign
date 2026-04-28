@@ -64,14 +64,14 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <AppShell>
-        <p className="text-slate-300">Carregando dashboard...</p>
+      <AppShell title="Dashboard">
+      <p className="text-slate-300">Carregando dashboard...</p>
       </AppShell>
     );
   }
 
   return (
-    <AppShell>
+    <AppShell title="Dashboard">
       <div className="space-y-8">
         <div>
           <p className="text-sm text-purple-300 font-semibold">
