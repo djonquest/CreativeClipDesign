@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
 
 type Client = {
   id: string;
@@ -18,7 +19,7 @@ export default function ClientesPage() {
   const userId = "SEU_USER_ID_AQUI";
 
   async function fetchClients() {
-    const res = await fetch(`/api/clients?userId=${userId}`);
+    const res = await fetch(`/api/clientes?userId=${userId}`);
     const data = await res.json();
     setClients(data);
   }
@@ -28,7 +29,7 @@ export default function ClientesPage() {
   }, []);
 
   async function handleCreate() {
-    await fetch("/api/clients", {
+    await fetch("/api/clientes", {
       method: "POST",
       body: JSON.stringify({ name, phone, notes, userId }),
     });
@@ -40,64 +41,86 @@ export default function ClientesPage() {
   }
 
   async function handleDelete(id: string) {
-    await fetch(`/api/clients?id=${id}`, {
+    await fetch(`/api/clientes?id=${id}`, {
       method: "DELETE",
     });
 
     fetchClients();
   }
 
+  function handleCancel() {
+    setName("");
+    setPhone("");
+    setNotes("");
+    window.history.back();
+  }
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Clientes</h1>
+    <AppShell title="Clientes">
+      <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
+        <section className="cc-card rounded-2xl p-6">
+          <h2 className="text-xl font-black text-white">Novo cliente</h2>
 
-      <div className="mb-6 space-y-2">
-        <input
-          className="border p-2 w-full"
-          placeholder="Nome"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+          <div className="mt-5 space-y-4">
+            <input
+              className="cc-input px-4 py-3"
+              placeholder="Nome"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
 
-        <input
-          className="border p-2 w-full"
-          placeholder="Telefone"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
+            <input
+              className="cc-input px-4 py-3"
+              placeholder="Telefone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
 
-        <textarea
-          className="border p-2 w-full"
-          placeholder="Observações"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
+            <textarea
+              className="cc-input min-h-28 px-4 py-3"
+              placeholder="Observacoes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
 
-        <button
-          onClick={handleCreate}
-          className="bg-black text-white px-4 py-2"
-        >
-          Criar Cliente
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        {clients.map((client) => (
-          <div key={client.id} className="border p-3 flex justify-between">
-            <div>
-              <p className="font-bold">{client.name}</p>
-              <p>{client.phone}</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={handleCancel}
+                className="cc-button-secondary w-full px-4 py-3"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreate}
+                className="cc-button-primary w-full px-4 py-3"
+              >
+                Criar cliente
+              </button>
             </div>
-
-            <button
-              onClick={() => handleDelete(client.id)}
-              className="text-red-500"
-            >
-              Deletar
-            </button>
           </div>
-        ))}
+        </section>
+
+        <section className="space-y-3">
+          {clients.map((client) => (
+            <div
+              key={client.id}
+              className="cc-card flex items-center justify-between gap-4 rounded-2xl p-4"
+            >
+              <div>
+                <p className="font-bold text-white">{client.name}</p>
+                <p className="text-sm text-slate-400">{client.phone}</p>
+              </div>
+
+              <button
+                onClick={() => handleDelete(client.id)}
+                className="rounded-xl bg-red-500/10 px-3 py-2 text-sm font-bold text-red-200 transition hover:bg-red-500/20"
+              >
+                Deletar
+              </button>
+            </div>
+          ))}
+        </section>
       </div>
-    </div>
+    </AppShell>
   );
 }

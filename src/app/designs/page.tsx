@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
 
 export default function DesignsPage() {
   const [designs, setDesigns] = useState<any[]>([]);
@@ -20,7 +21,7 @@ export default function DesignsPage() {
   }
 
   useEffect(() => {
-    fetch(`/api/clients?userId=${userId}`)
+    fetch(`/api/clientes?userId=${userId}`)
       .then((res) => res.json())
       .then(setClients);
 
@@ -39,46 +40,52 @@ export default function DesignsPage() {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Histórico de Designs</h1>
-
-      {/* filtro por cliente */}
-      <select
-        className="border p-2 mb-4"
-        value={clientId}
-        onChange={handleFilter}
-      >
-        <option value="">Todos clientes</option>
-        {clients.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-      </select>
-
-      {/* galeria */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {designs.map((d) => (
-          <div key={d.id} className="border p-2">
-            {d.image_url && (
-              <img
-                src={d.image_url}
-                alt="design"
-                className="w-full h-60 object-cover"
-              />
-            )}
-
-            <p className="text-xs mt-2 line-clamp-3">{d.prompt}</p>
-
-            <button
-              onClick={() => reusePrompt(d.prompt)}
-              className="mt-2 text-blue-500 text-sm"
-            >
-              Reutilizar prompt
-            </button>
-          </div>
-        ))}
+    <AppShell title="Historico de designs">
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <select
+          className="cc-input max-w-sm px-4 py-3"
+          value={clientId}
+          onChange={handleFilter}
+        >
+          <option value="">Todos clientes</option>
+          {clients.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
       </div>
-    </div>
+
+      {designs.length === 0 ? (
+        <div className="cc-card rounded-2xl p-6 text-slate-400">
+          Nenhum design encontrado.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {designs.map((d) => (
+            <article key={d.id} className="cc-card overflow-hidden rounded-2xl">
+              {d.image_url && (
+                <img
+                  src={d.image_url}
+                  alt="Design"
+                  className="h-72 w-full object-cover"
+                />
+              )}
+
+              <div className="p-4">
+                <p className="line-clamp-3 text-sm text-slate-300">{d.prompt}</p>
+
+                <button
+                  onClick={() => reusePrompt(d.prompt)}
+                  className="cc-button-secondary mt-4 w-full px-4 py-3 text-sm"
+                >
+                  Reutilizar prompt
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </AppShell>
   );
 }

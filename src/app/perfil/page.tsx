@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { supabaseClient } from "@/lib/supabaseClient";
 
@@ -42,7 +43,7 @@ export default function PerfilPage() {
     if (data.url) {
       window.location.href = data.url;
     } else {
-      alert(data.error || "Não foi possível abrir o faturamento");
+      alert(data.error || "Nao foi possivel abrir o faturamento");
     }
   }
 
@@ -66,49 +67,67 @@ export default function PerfilPage() {
     loadProfile();
   }, []);
 
-  if (loading) return <p className="p-6">Carregando...</p>;
+  if (loading) {
+    return (
+      <AppShell title="Meu perfil">
+        <div className="cc-card rounded-2xl p-6 text-slate-400">
+          Carregando...
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Meu Perfil</h1>
+    <AppShell title="Meu perfil">
+      <div className="mx-auto max-w-2xl">
+        <section className="cc-card rounded-2xl p-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="sm:col-span-3">
+              <p className="text-sm font-semibold text-slate-400">Email</p>
+              <p className="mt-2 text-lg font-bold text-white">
+                {profile?.email || "-"}
+              </p>
+            </div>
 
-      <div className="border rounded-xl p-5 mb-6 shadow-sm bg-white">
-        <p className="mb-2">
-          <strong>Email:</strong> {profile?.email || "-"}
-        </p>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-sm text-slate-400">Plano</p>
+              <p className="mt-2 text-2xl font-black text-white">
+                {profile?.plan || "Starter"}
+              </p>
+            </div>
 
-        <p className="mb-2">
-          <strong>Plano:</strong>{" "}
-          <span className="font-semibold">{profile?.plan || "Starter"}</span>
-        </p>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:col-span-2">
+              <p className="text-sm text-slate-400">Creditos</p>
+              <p className="mt-2 text-2xl font-black text-emerald-300">
+                {profile?.credits ?? 0}
+              </p>
+            </div>
+          </div>
+        </section>
 
-        <p className="text-lg">
-          <strong>Créditos:</strong>{" "}
-          <span className="text-green-600 font-bold">
-            {profile?.credits ?? 0}
-          </span>
-        </p>
+        <section className="mt-6 space-y-3">
+          <button
+            onClick={handleUpgrade}
+            className="cc-button-primary w-full px-4 py-3"
+          >
+            Fazer upgrade
+          </button>
+
+          <button
+            onClick={handleBillingPortal}
+            className="cc-button-secondary w-full px-4 py-3"
+          >
+            Gerenciar faturamento
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full rounded-2xl bg-red-500/10 px-4 py-3 font-bold text-red-200 transition hover:bg-red-500/20"
+          >
+            Sair
+          </button>
+        </section>
       </div>
-
-      <div className="space-y-3">
-        <button
-          onClick={handleUpgrade}
-          className="bg-gradient-to-r from-purple-600 to-pink-500 text-white px-4 py-3 w-full rounded-lg font-semibold"
-        >
-          Fazer Upgrade
-        </button>
-
-        <button
-          onClick={handleBillingPortal}
-          className="border px-4 py-3 w-full rounded-lg"
-        >
-          Gerenciar Faturamento
-        </button>
-
-        <button onClick={handleLogout} className="text-red-500 w-full py-2">
-          Sair
-        </button>
-      </div>
-    </div>
+    </AppShell>
   );
 }

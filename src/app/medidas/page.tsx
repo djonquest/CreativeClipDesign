@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 
 export default function MedidasPage() {
@@ -14,7 +15,6 @@ export default function MedidasPage() {
   const [hip, setHip] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔐 carregar usuário + clientes
   useEffect(() => {
     async function init() {
       const user = await getCurrentUser();
@@ -26,7 +26,7 @@ export default function MedidasPage() {
 
       setUserId(user.id);
 
-      const res = await fetch(`/api/clients?userId=${user.id}`);
+      const res = await fetch(`/api/clientes?userId=${user.id}`);
       const data = await res.json();
       setClients(data);
     }
@@ -67,7 +67,6 @@ export default function MedidasPage() {
 
       alert("Medidas salvas com sucesso!");
 
-      // limpar campos
       setSize("");
       setBust("");
       setWaist("");
@@ -80,66 +79,83 @@ export default function MedidasPage() {
     }
   }
 
+  function handleCancel() {
+    setClientId("");
+    setSize("");
+    setBust("");
+    setWaist("");
+    setHip("");
+    window.history.back();
+  }
+
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Medidas do Cliente</h1>
+    <AppShell title="Medidas do cliente">
+      <section className="cc-card mx-auto max-w-2xl rounded-2xl p-6">
+        <h2 className="text-xl font-black text-white">Ficha de medidas</h2>
 
-      {/* Cliente */}
-      <select
-        className="w-full border p-2 mb-4 rounded"
-        value={clientId}
-        onChange={(e) => setClientId(e.target.value)}
-      >
-        <option value="">Selecionar cliente</option>
-        {clients.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-      </select>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <select
+            className="cc-input px-4 py-3 sm:col-span-2"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+          >
+            <option value="">Selecionar cliente</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
 
-      {/* Tamanho */}
-      <select
-        className="w-full border p-2 mb-4 rounded"
-        value={size}
-        onChange={(e) => setSize(e.target.value)}
-      >
-        <option value="">Tamanho padrão</option>
-        <option>P</option>
-        <option>M</option>
-        <option>G</option>
-      </select>
+          <select
+            className="cc-input px-4 py-3 sm:col-span-2"
+            value={size}
+            onChange={(e) => setSize(e.target.value)}
+          >
+            <option value="">Tamanho padrao</option>
+            <option>P</option>
+            <option>M</option>
+            <option>G</option>
+          </select>
 
-      {/* Medidas */}
-      <input
-        className="w-full border p-2 mb-2 rounded"
-        placeholder="Busto (cm)"
-        value={bust}
-        onChange={(e) => setBust(e.target.value)}
-      />
+          <input
+            className="cc-input px-4 py-3"
+            placeholder="Busto (cm)"
+            value={bust}
+            onChange={(e) => setBust(e.target.value)}
+          />
 
-      <input
-        className="w-full border p-2 mb-2 rounded"
-        placeholder="Cintura (cm)"
-        value={waist}
-        onChange={(e) => setWaist(e.target.value)}
-      />
+          <input
+            className="cc-input px-4 py-3"
+            placeholder="Cintura (cm)"
+            value={waist}
+            onChange={(e) => setWaist(e.target.value)}
+          />
 
-      <input
-        className="w-full border p-2 mb-4 rounded"
-        placeholder="Quadril (cm)"
-        value={hip}
-        onChange={(e) => setHip(e.target.value)}
-      />
+          <input
+            className="cc-input px-4 py-3 sm:col-span-2"
+            placeholder="Quadril (cm)"
+            value={hip}
+            onChange={(e) => setHip(e.target.value)}
+          />
+        </div>
 
-      {/* Botão */}
-      <button
-        onClick={handleSave}
-        disabled={loading}
-        className="bg-gradient-to-r from-purple-600 to-pink-500 text-white px-4 py-3 w-full rounded-lg font-semibold"
-      >
-        {loading ? "Salvando..." : "Salvar Medidas"}
-      </button>
-    </div>
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <button
+            onClick={handleCancel}
+            className="cc-button-secondary w-full px-4 py-3"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="cc-button-primary w-full px-4 py-3"
+          >
+            {loading ? "Salvando..." : "Salvar medidas"}
+          </button>
+        </div>
+      </section>
+    </AppShell>
   );
 }

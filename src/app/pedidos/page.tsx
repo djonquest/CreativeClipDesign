@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 
 type Order = {
@@ -34,7 +35,7 @@ export default function PedidosPage() {
 
       setUserId(user.id);
 
-      const clientsRes = await fetch(`/api/clients?userId=${user.id}`);
+      const clientsRes = await fetch(`/api/clientes?userId=${user.id}`);
       const clientsData = await clientsRes.json();
       setClients(clientsData);
 
@@ -109,9 +110,17 @@ export default function PedidosPage() {
     await fetchOrders();
   }
 
+  function handleCancel() {
+    setClientId("");
+    setPrice("");
+    setDeliveryDate("");
+    setNotes("");
+    window.history.back();
+  }
+
   function getClientName(id?: string) {
     const client = clients.find((c) => c.id === id);
-    return client?.name || "Cliente não informado";
+    return client?.name || "Cliente nao informado";
   }
 
   function isLate(date: string, status: string) {
@@ -128,117 +137,135 @@ export default function PedidosPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Pedidos</h1>
+    <AppShell title="Pedidos">
+      <div className="grid gap-6 xl:grid-cols-[460px_1fr]">
+        <section className="cc-card rounded-2xl p-6">
+          <h2 className="text-xl font-black text-white">Novo pedido</h2>
 
-      <div className="border rounded-xl p-5 mb-6 shadow-sm bg-white space-y-3">
-        <h2 className="text-xl font-semibold">Novo Pedido</h2>
-
-        <select
-          className="border p-2 w-full rounded"
-          value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
-        >
-          <option value="">Selecionar cliente</option>
-          {clients.map((client) => (
-            <option key={client.id} value={client.id}>
-              {client.name}
-            </option>
-          ))}
-        </select>
-
-        <input
-          className="border p-2 w-full rounded"
-          placeholder="Valor (R$)"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-        />
-
-        <input
-          type="date"
-          className="border p-2 w-full rounded"
-          value={deliveryDate}
-          onChange={(e) => setDeliveryDate(e.target.value)}
-        />
-
-        <textarea
-          className="border p-2 w-full rounded"
-          placeholder="Observações do pedido"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-
-        <button
-          onClick={handleCreate}
-          disabled={loading}
-          className="bg-gradient-to-r from-purple-600 to-pink-500 text-white px-4 py-3 rounded-lg w-full font-semibold"
-        >
-          {loading ? "Criando..." : "Criar Pedido"}
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        {orders.map((order) => {
-          const late = isLate(order.delivery_date, order.status);
-
-          return (
-            <div
-              key={order.id}
-              className={`border rounded-xl p-4 shadow-sm bg-white ${
-                late ? "border-red-500" : ""
-              }`}
+          <div className="mt-5 space-y-4">
+            <select
+              className="cc-input px-4 py-3"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
             >
-              <div className="flex justify-between gap-4">
-                <div>
-                  <p className="font-bold">{getClientName(order.client_id)}</p>
-                  <p>R$ {Number(order.price || 0).toFixed(2)}</p>
-                  <p>Entrega: {order.delivery_date || "-"}</p>
-                  <p>Status: {order.status}</p>
+              <option value="">Selecionar cliente</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
 
-                  {order.notes && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      {order.notes}
+            <input
+              className="cc-input px-4 py-3"
+              placeholder="Valor (R$)"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+
+            <input
+              type="date"
+              className="cc-input px-4 py-3"
+              value={deliveryDate}
+              onChange={(e) => setDeliveryDate(e.target.value)}
+            />
+
+            <textarea
+              className="cc-input min-h-28 px-4 py-3"
+              placeholder="Observacoes do pedido"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={handleCancel}
+                className="cc-button-secondary w-full px-4 py-3"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={loading}
+                className="cc-button-primary w-full px-4 py-3"
+              >
+                {loading ? "Criando..." : "Criar pedido"}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          {orders.map((order) => {
+            const late = isLate(order.delivery_date, order.status);
+
+            return (
+              <div
+                key={order.id}
+                className={`cc-card rounded-2xl p-5 ${
+                  late ? "border-red-400/40 bg-red-500/10" : ""
+                }`}
+              >
+                <div className="flex flex-col justify-between gap-4 md:flex-row">
+                  <div>
+                    <p className="font-bold text-white">
+                      {getClientName(order.client_id)}
                     </p>
-                  )}
-
-                  {late && (
-                    <p className="text-red-500 font-semibold mt-2">
-                      Pedido atrasado
+                    <p className="mt-2 text-slate-300">
+                      R$ {Number(order.price || 0).toFixed(2)}
                     </p>
-                  )}
-                </div>
+                    <p className="text-sm text-slate-400">
+                      Entrega: {order.delivery_date || "-"}
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      Status: {order.status}
+                    </p>
 
-                <div className="flex flex-col gap-2 text-sm">
-                  <button
-                    onClick={() => handleStatus(order.id, "in_progress")}
-                    className="text-blue-600"
-                  >
-                    Em andamento
-                  </button>
+                    {order.notes && (
+                      <p className="mt-3 text-sm text-slate-300">{order.notes}</p>
+                    )}
 
-                  <button
-                    onClick={() => handleStatus(order.id, "done")}
-                    className="text-green-600"
-                  >
-                    Concluído
-                  </button>
+                    {late && (
+                      <p className="mt-3 text-sm font-bold text-red-200">
+                        Pedido atrasado
+                      </p>
+                    )}
+                  </div>
 
-                  <button
-                    onClick={() => handleStatus(order.id, "delivered")}
-                    className="text-purple-600"
-                  >
-                    Entregue
-                  </button>
+                  <div className="flex flex-wrap gap-2 text-sm md:flex-col">
+                    <button
+                      onClick={() => handleStatus(order.id, "in_progress")}
+                      className="cc-button-secondary px-3 py-2"
+                    >
+                      Em andamento
+                    </button>
+
+                    <button
+                      onClick={() => handleStatus(order.id, "done")}
+                      className="cc-button-secondary px-3 py-2"
+                    >
+                      Concluido
+                    </button>
+
+                    <button
+                      onClick={() => handleStatus(order.id, "delivered")}
+                      className="cc-button-secondary px-3 py-2"
+                    >
+                      Entregue
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {orders.length === 0 && (
-          <p className="text-gray-500">Nenhum pedido cadastrado ainda.</p>
-        )}
+          {orders.length === 0 && (
+            <div className="cc-card rounded-2xl p-6 text-slate-400">
+              Nenhum pedido cadastrado ainda.
+            </div>
+          )}
+        </section>
       </div>
-    </div>
+    </AppShell>
   );
 }
