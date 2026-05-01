@@ -13,15 +13,38 @@ export async function POST(req: Request) {
     const { prompt, userId, clientId } = body;
 
     // 🔍 1. Buscar usuário
-    const { data: user, error: userError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    let { data: user, error: userError } = await supabase
+  .from("profiles")
+  .select("*")
+  .eq("id", userId)
+  .maybeSingle();
 
-    if (userError || !user) {
-      return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
-    }
+if (!user) {
+  const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+
+  const { data: newUser, error: createProfileError } = await supabase
+    .from("profiles")
+    .insert({
+      id: userId,
+      email: authUser?.user?.email || null,
+      role: "user",
+      plan: "starter",
+      credits: 10,
+    })
+    .select("*")
+    .single();
+
+  if (createProfileError || !newUser) {
+    console.error("Erro ao criar profile:", createProfileError);
+
+    return NextResponse.json(
+      { error: "Não foi possível criar perfil do usuário" },
+      { status: 500 }
+    );
+  }
+
+  user = newUser;
+}
 
     // 💰 2. Validar créditos
     if (!canUseCredits(user)) {
