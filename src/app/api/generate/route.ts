@@ -52,11 +52,17 @@ if (!user) {
     }
 
     // 👤 3. Buscar cliente
-    const { data: client } = await supabase
-      .from("clients")
-      .select("*")
-      .eq("id", clientId)
-      .single();
+let client = null;
+
+if (clientId) {
+  const { data } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("id", clientId)
+    .maybeSingle();
+
+  client = data;
+}
 
     // 📏 4. Buscar medidas
     const { data: measurements } = await supabase
